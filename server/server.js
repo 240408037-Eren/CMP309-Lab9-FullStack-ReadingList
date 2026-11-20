@@ -6,7 +6,8 @@ import {
   hasDuplicate,
   createBook,
   replaceBook,
-  deleteBook
+  deleteBook,
+  getStats
 } from './booksStore.js';
 import {
   parsePositiveInt,
@@ -28,6 +29,17 @@ app.use(express.json());
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// GET /api/stats - compute reading list statistics dynamically
+app.get('/api/stats', async (req, res) => {
+  const stats = await getStats();
+  return res.json(stats);
+});
+
+// GET /api/crash - deliberate async error to verify 500 error middleware
+app.get('/api/crash', async (req, res) => {
+  throw new Error('Simulated unexpected async failure');
 });
 
 // GET /api/books - list books with filtering, sorting, and pagination
@@ -119,6 +131,20 @@ app.delete('/api/books/:id', async (req, res) => {
     return res.status(404).json({ error: 'Book not found' });
   }
   return res.status(204).send();
+});
+
+// Express 5 compliant 404 fallback for unmatched /api routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Global error-handling middleware (handles malformed JSON 400 and unexpected 500)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Malformed JSON in request body' });
+  }
+  console.error('Unhandled server error:', err);
+  return res.status(500).json({ error: 'Something went wrong' });
 });
 
 app.listen(PORT, () => {
