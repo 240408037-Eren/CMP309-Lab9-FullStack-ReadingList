@@ -77,6 +77,7 @@ export function mergeAndValidatePatch(existingBook, body) {
     return { error: 'Request body must be a JSON object' };
   }
 
+  // Only known book fields are merged; unknown fields in body are ignored
   const merged = {
     title: body.title !== undefined ? body.title : existingBook.title,
     author: body.author !== undefined ? body.author : existingBook.author,
